@@ -2,5 +2,5 @@
 
 |题目|说明|
 |----|----|
-|helloword|第一个练习题目|
+|[helloword](./hello-world/hello_world.java)|第一个练习题目|
 
