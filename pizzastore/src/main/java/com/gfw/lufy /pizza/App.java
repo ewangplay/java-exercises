@@ -1,11 +1,7 @@
-package com.gfw.lufy;
-
-import com.gfw.lufy.pizza.SimplePizzaFactory;
-import com.gfw.lufy.pizza.PizzaStore;
-import com.gfw.lufy.pizza.Pizza;
+package com.gfw.lufy.pizza;
 
 /**
- * Pizza Store App
+ * Pizza Store App using "Simple Factory Pattern"
  *
  */
 public class App 
@@ -18,6 +14,6 @@ public class App
 
 		Pizza pizza = pizzaStore.orderPizza("cheese");
 
-		System.out.println(pizza.getDescription());
+		System.out.println("This is a " + pizza.getDescription() + ". Enjoy it!");
     }
 }
