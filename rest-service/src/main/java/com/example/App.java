@@ -27,7 +27,8 @@ public class App implements CommandLineRunner {
     public void run(String... strings) throws Exception {
         logger.info("Create tables");
 
-        jdbcTemplate.execute("DROP TABLE customers IF EXISTS");
+        // jdbcTemplate.execute("DROP TABLE customers IF EXISTS");
+        jdbcTemplate.execute("DROP TABLE IF EXISTS customers");
         jdbcTemplate.execute("CREATE TABLE customers(" +
             "id SERIAL, first_name VARCHAR(255), last_name VARCHAR(255))");
 

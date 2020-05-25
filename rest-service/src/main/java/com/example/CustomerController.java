@@ -16,10 +16,10 @@ public class CustomerController {
 
     @PostMapping("/customer/addCustomer")
     public String addCustomer(@RequestBody Customer customer) {
-        if (customer.getFirstName() == "") {
+        if (customer.getFirstName() == null || customer.getFirstName().equals("")) {
             return "FAILURE: first name missing";
         }
-        if (customer.getLastName() == "") {
+        if (customer.getLastName() == null || customer.getLastName().equals("")) {
             return "FAILURE: last name missing";
         }
         jdbcTemplate.update("INSERT INTO customers(first_name, last_name) VALUES (?,?)", customer.getFirstName(), customer.getLastName());
