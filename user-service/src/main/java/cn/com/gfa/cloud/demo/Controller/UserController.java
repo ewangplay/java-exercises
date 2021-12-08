@@ -13,11 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import cn.com.gfa.cloud.demo.IO.UserRequest;
 import cn.com.gfa.cloud.demo.Common.ErrorCode;
 import cn.com.gfa.cloud.demo.IO.Response;
+import cn.com.gfa.cloud.demo.IO.UserRequest;
 import cn.com.gfa.cloud.demo.Model.User;
 import cn.com.gfa.cloud.demo.Repository.UserRepository;
 
@@ -33,7 +34,7 @@ public class UserController {
         Response resp = new Response();
 
         // Check the params
-        if (!StringUtils.hasLength(req.getName())) {
+        if (!StringUtils.hasText(req.getName())) {
             resp.setCode(ErrorCode.RequestParamInvalid.getCode());
             resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
             return resp;
@@ -51,7 +52,7 @@ public class UserController {
         return resp;
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/deletebyid/{id}")
     public Response delUserById(@PathVariable(value = "id") Integer id) {
         Response resp = new Response();
 
@@ -71,7 +72,35 @@ public class UserController {
         return resp;
     }
 
-    @GetMapping("/get/{id}")
+    @DeleteMapping("/deletebyname")
+    public Response delUserByName(@RequestParam(value = "name") String name) {
+        Response resp = new Response();
+
+        // Check the params
+        if (!StringUtils.hasText(name)) {
+            resp.setCode(ErrorCode.RequestParamInvalid.getCode());
+            resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
+            return resp;
+        }
+
+        // Find the user by name
+        Optional<User> result = repository.findByName(name);
+        if (result.isPresent()) {
+            // Delete user from DB
+            repository.deleteById(result.get().getId());
+
+            // Build successful response
+            resp.setCode(ErrorCode.Success.getCode());
+            resp.setMessage(ErrorCode.Success.getMessage());
+
+        } else {
+            resp.setCode(ErrorCode.UserNotExist.getCode());
+            resp.setMessage(ErrorCode.UserNotExist.getMessage());
+        }
+        return resp;
+    }
+
+    @GetMapping("/getbyid/{id}")
     public Response getUserById(@PathVariable(value = "id") Integer id) {
         Response resp = new Response();
 
@@ -84,6 +113,31 @@ public class UserController {
 
         // Find user from DB
         Optional<User> result = repository.findById(id);
+        if (result.isPresent()) {
+            resp.setCode(ErrorCode.Success.getCode());
+            resp.setMessage(ErrorCode.Success.getMessage());
+            resp.setData(result.get());
+        } else {
+            resp.setCode(ErrorCode.UserNotExist.getCode());
+            resp.setMessage(ErrorCode.UserNotExist.getMessage());
+        }
+
+        return resp;
+    }
+
+    @GetMapping("/getbyname")
+    public Response getUserByName(@RequestParam(value = "name") String name) {
+        Response resp = new Response();
+
+        // Check the params
+        if (!StringUtils.hasText(name)) {
+            resp.setCode(ErrorCode.RequestParamInvalid.getCode());
+            resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
+            return resp;
+        }
+
+        // Find user from DB
+        Optional<User> result = repository.findByName(name);
         if (result.isPresent()) {
             resp.setCode(ErrorCode.Success.getCode());
             resp.setMessage(ErrorCode.Success.getMessage());

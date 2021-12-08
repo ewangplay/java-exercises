@@ -8,6 +8,7 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,10 @@ import cn.com.gfa.cloud.demo.Model.User;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestMethodOrder(OrderAnnotation.class)
 public class UserAPITests {
+    // User id to test
+    final static Integer userId = 10;
+    final static String userName = "Nami";
+
     @Autowired
     private TestRestTemplate template;
 
@@ -43,7 +48,7 @@ public class UserAPITests {
     @Order(2)
     public void addUser() {
         UserRequest req = new UserRequest();
-        req.setName("Tom");
+        req.setName(userName);
 
         Response response = template.postForObject("/users/add", req, Response.class);
         assertThat(response.getCode()).isEqualTo(ErrorCode.Success.getCode());
@@ -56,37 +61,7 @@ public class UserAPITests {
         Map<String, Integer> params = new HashMap<String, Integer>();
         params.put("id", 0);
 
-        ResponseEntity<Response> response = template.exchange("/users/get/{id}", HttpMethod.GET, null, Response.class,
-                params);
-        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.RequestParamInvalid.getCode());
-        assertThat(response.getBody().getMessage()).isEqualTo(ErrorCode.RequestParamInvalid.getMessage());
-    }
-
-    @Test
-    @Order(4)
-    public void getUserById() throws JsonProcessingException {
-        Map<String, Integer> params = new HashMap<String, Integer>();
-        params.put("id", 7);
-
-        // Find users
-        Response resp1 = template.getForObject("/users/get/{id}", Response.class, params);
-        assertThat(resp1.getCode()).isEqualTo(ErrorCode.Success.getCode());
-        assertThat(resp1.getMessage()).isEqualTo(ErrorCode.Success.getMessage());
-        assertThat(resp1.getData()).isNotNull();
-
-        ObjectMapper mapper = new ObjectMapper();
-        String strUser = mapper.writeValueAsString(resp1.getData());
-        User u = mapper.readValue(strUser, User.class);
-        assertThat(u.getId()).isEqualTo(7);
-    }
-
-    @Test
-    @Order(5)
-    public void delUserWithoutId() {
-        Map<String, Integer> params = new HashMap<String, Integer>();
-        params.put("id", 0);
-
-        ResponseEntity<Response> response = template.exchange("/users/delete/{id}", HttpMethod.DELETE, null,
+        ResponseEntity<Response> response = template.exchange("/users/getbyid/{id}", HttpMethod.GET, null,
                 Response.class,
                 params);
         assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.RequestParamInvalid.getCode());
@@ -94,13 +69,105 @@ public class UserAPITests {
     }
 
     @Test
+    @Disabled
+    @Order(4)
+    public void getUserById() throws JsonProcessingException {
+        Map<String, Integer> params = new HashMap<String, Integer>();
+        params.put("id", userId);
+
+        // Find users
+        Response resp1 = template.getForObject("/users/getbyid/{id}", Response.class, params);
+        assertThat(resp1.getCode()).isEqualTo(ErrorCode.Success.getCode());
+        assertThat(resp1.getMessage()).isEqualTo(ErrorCode.Success.getMessage());
+        assertThat(resp1.getData()).isNotNull();
+
+        ObjectMapper mapper = new ObjectMapper();
+        String strUser = mapper.writeValueAsString(resp1.getData());
+        User u = mapper.readValue(strUser, User.class);
+        assertThat(u.getId()).isEqualTo(userId);
+    }
+
+    @Test
+    @Order(5)
+    public void getUserWithoutName() {
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("name", "");
+
+        Response response = template.getForObject("/users/getbyname?name={name}", Response.class, params);
+        assertThat(response.getCode()).isEqualTo(ErrorCode.RequestParamInvalid.getCode());
+        assertThat(response.getMessage()).isEqualTo(ErrorCode.RequestParamInvalid.getMessage());
+    }
+
+    @Test
     @Order(6)
-    public void delUserSucc() {
+    public void getUserByName() throws JsonProcessingException {
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("name", userName);
+
+        // Find users
+        Response resp1 = template.getForObject("/users/getbyname?name={name}", Response.class, params);
+        assertThat(resp1.getCode()).isEqualTo(ErrorCode.Success.getCode());
+        assertThat(resp1.getMessage()).isEqualTo(ErrorCode.Success.getMessage());
+        assertThat(resp1.getData()).isNotNull();
+
+        ObjectMapper mapper = new ObjectMapper();
+        String strUser = mapper.writeValueAsString(resp1.getData());
+        User u = mapper.readValue(strUser, User.class);
+        assertThat(u.getName()).isEqualTo(userName);
+    }
+
+    @Test
+    @Order(11)
+    public void delUserWithoutId() {
+        Map<String, Integer> params = new HashMap<String, Integer>();
+        params.put("id", 0);
+
+        ResponseEntity<Response> response = template.exchange("/users/deletebyid/{id}", HttpMethod.DELETE, null,
+                Response.class,
+                params);
+        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.RequestParamInvalid.getCode());
+        assertThat(response.getBody().getMessage()).isEqualTo(ErrorCode.RequestParamInvalid.getMessage());
+    }
+
+    @Test
+    @Disabled
+    @Order(12)
+    public void delUserById() {
         // Delete special user
         Map<String, Integer> params = new HashMap<String, Integer>();
-        params.put("id", 7);
+        params.put("id", userId);
 
-        ResponseEntity<Response> response = template.exchange("/users/delete/{id}", HttpMethod.DELETE, null,
+        ResponseEntity<Response> response = template.exchange("/users/deletebyid/{id}", HttpMethod.DELETE, null,
+                Response.class,
+                params);
+        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.Success.getCode());
+        assertThat(response.getBody().getMessage()).isEqualTo(ErrorCode.Success.getMessage());
+    }
+
+    @Test
+    @Order(13)
+    public void delUserWithoutName() {
+        // Delete special user
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("name", "");
+
+        ResponseEntity<Response> response = template.exchange("/users/deletebyname?name={name}", HttpMethod.DELETE,
+                null,
+                Response.class,
+                params);
+        assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.RequestParamInvalid.getCode());
+        assertThat(response.getBody().getMessage()).isEqualTo(ErrorCode.RequestParamInvalid.getMessage());
+    }
+
+    @Test
+    @Order(14)
+    public void delUserByName() {
+        // Delete special user
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("name", userName);
+
+        ResponseEntity<Response> response = template.exchange("/users/deletebyname?name={name}", HttpMethod.DELETE,
+                null,
                 Response.class,
                 params);
         assertThat(response.getBody().getCode()).isEqualTo(ErrorCode.Success.getCode());
