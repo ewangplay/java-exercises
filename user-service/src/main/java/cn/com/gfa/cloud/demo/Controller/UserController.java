@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import cn.com.gfa.cloud.demo.Common.ErrorCode;
 import cn.com.gfa.cloud.demo.IO.Response;
-import cn.com.gfa.cloud.demo.IO.UserRequest;
 import cn.com.gfa.cloud.demo.Model.User;
 import cn.com.gfa.cloud.demo.Repository.UserRepository;
 
@@ -29,44 +28,66 @@ public class UserController {
     @Autowired
     private UserRepository repository;
 
+    // Whether the user is valid
+    private boolean isValidUser(User user) {
+        if (!StringUtils.hasText(user.getName())) {
+            return false;
+        }
+        return true;
+    }
+
+    // Whether the user id is valid
+    private boolean isValidUserId(Integer id) {
+        if (id <= 0) {
+            return false;
+        }
+        return true;
+    }
+
+    // Whether the user name is valid
+    private boolean isValidUserName(String name) {
+        if (!StringUtils.hasText(name)) {
+            return false;
+        }
+        return true;
+    }
+
     @PostMapping("/add")
-    public Response addUser(@RequestBody UserRequest req) {
+    public Response addUser(@RequestBody User user) {
         Response resp = new Response();
 
-        // Check the params
-        if (!StringUtils.hasText(req.getName())) {
+        // Check the user
+        if (!isValidUser(user)) {
             resp.setCode(ErrorCode.RequestParamInvalid.getCode());
             resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
             return resp;
         }
 
-        // Save user to DB
-        User user = new User();
-        user.setName(req.getName());
+        // Save the user to DB
         User saveUser = repository.save(user);
 
-        // Build successful response
+        // Return response
         resp.setCode(ErrorCode.Success.getCode());
         resp.setMessage(ErrorCode.Success.getMessage());
         resp.setData(saveUser);
         return resp;
     }
 
-    @DeleteMapping("/deletebyid/{id}")
-    public Response delUserById(@PathVariable(value = "id") Integer id) {
+    @DeleteMapping("/deletebyid")
+    public Response delUserById(@RequestParam(value = "id") Integer id) {
         Response resp = new Response();
 
-        // Check the params
-        if (id <= 0) {
+        // Check the user id
+        if (!isValidUserId(id)) {
             resp.setCode(ErrorCode.RequestParamInvalid.getCode());
             resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
             return resp;
         }
 
-        // Delete user from DB
+        // Delete the user from DB by id
         repository.deleteById(id);
 
-        // Build successful response
+        // return response
         resp.setCode(ErrorCode.Success.getCode());
         resp.setMessage(ErrorCode.Success.getMessage());
         return resp;
@@ -76,42 +97,50 @@ public class UserController {
     public Response delUserByName(@RequestParam(value = "name") String name) {
         Response resp = new Response();
 
-        // Check the params
-        if (!StringUtils.hasText(name)) {
+        // Check the user name
+        if (!isValidUserName(name)) {
             resp.setCode(ErrorCode.RequestParamInvalid.getCode());
             resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
             return resp;
         }
 
         // Find the user by name
-        Optional<User> result = repository.findByName(name);
-        if (result.isPresent()) {
-            // Delete user from DB
-            repository.deleteById(result.get().getId());
+        Iterable<User> result = repository.findByName(name);
+        List<User> list = new ArrayList<>();
+        for (User u : result) {
+            list.add(u);
 
-            // Build successful response
+            // Delete the user from DB by id
+            repository.deleteById(u.getId());
+        }
+
+        if (!list.isEmpty()) {
             resp.setCode(ErrorCode.Success.getCode());
             resp.setMessage(ErrorCode.Success.getMessage());
-
+            // 返回删除记录的数量
+            // 注意：这里如果直接返回list列表，请求时会发生异常
+            //  似乎是引用的User数据已经被销毁，无法创建返回的JSON数据
+            resp.setData(list.size());
         } else {
             resp.setCode(ErrorCode.UserNotExist.getCode());
             resp.setMessage(ErrorCode.UserNotExist.getMessage());
         }
+
         return resp;
     }
 
-    @GetMapping("/getbyid/{id}")
-    public Response getUserById(@PathVariable(value = "id") Integer id) {
+    @GetMapping("/getbyid")
+    public Response getUserById(@RequestParam(value = "id") Integer id) {
         Response resp = new Response();
 
-        // Check the params
-        if (id <= 0) {
+        // Check the user id
+        if (!isValidUserId(id)) {
             resp.setCode(ErrorCode.RequestParamInvalid.getCode());
             resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
             return resp;
         }
 
-        // Find user from DB
+        // Find the user from DB by id
         Optional<User> result = repository.findById(id);
         if (result.isPresent()) {
             resp.setCode(ErrorCode.Success.getCode());
@@ -129,19 +158,23 @@ public class UserController {
     public Response getUserByName(@RequestParam(value = "name") String name) {
         Response resp = new Response();
 
-        // Check the params
-        if (!StringUtils.hasText(name)) {
+        // Check the user name
+        if (!isValidUserName(name)) {
             resp.setCode(ErrorCode.RequestParamInvalid.getCode());
             resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
             return resp;
         }
 
-        // Find user from DB
-        Optional<User> result = repository.findByName(name);
-        if (result.isPresent()) {
+        // Find users from DB by name
+        Iterable<User> result = repository.findByName(name);
+        List<User> list = new ArrayList<>();
+        for (User u : result) {
+            list.add(u);
+        }
+        if (!list.isEmpty()) {
             resp.setCode(ErrorCode.Success.getCode());
             resp.setMessage(ErrorCode.Success.getMessage());
-            resp.setData(result.get());
+            resp.setData(list);
         } else {
             resp.setCode(ErrorCode.UserNotExist.getCode());
             resp.setMessage(ErrorCode.UserNotExist.getMessage());
@@ -175,19 +208,25 @@ public class UserController {
     }
 
     @PutMapping("/update/{id}")
-    public Response updateUser(@PathVariable(value = "id") Integer id, @RequestBody UserRequest req) {
+    public Response updateUser(@PathVariable(value = "id") Integer id, @RequestBody User user) {
         Response resp = new Response();
 
-        // Check the params
-        if (id <= 0) {
+        // Check the user id
+        if (!isValidUserId(id)) {
             resp.setCode(ErrorCode.RequestParamInvalid.getCode());
             resp.setMessage(ErrorCode.RequestParamInvalid.getMessage());
             return resp;
         }
 
-        // Save user to DB
-        User user = new User();
-        user.setName(req.getName());
+        // The user must exist when updating user info
+        Optional<User> result = repository.findById(id);
+        if (!result.isPresent()) {
+            resp.setCode(ErrorCode.UserNotExist.getCode());
+            resp.setMessage(ErrorCode.UserNotExist.getMessage());
+            return resp;
+        }
+
+        // Save the updated user to DB
         User saveUser = repository.save(user);
 
         // Build successful response
