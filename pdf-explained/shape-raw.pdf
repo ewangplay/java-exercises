@@ -1,0 +1,36 @@
+%PDF-1.0 % PDF文件头
+1 0 obj % 页面树
+<< /Kids [2 0 R]
+  /Type /Pages
+  /Count 1 >>
+endobj
+2 0 obj % 页面对象
+<< /Rotate 0
+   /Parent 1 0 R
+   /MediaBox [0 0 792 612] 
+   /Resources 3 0 R
+   /Type /Page
+   /Contents [4 0 R]
+>>
+endobj
+3 0 obj % 资源
+<< >>
+4 0 obj % 页面内容流
+<< /Length 19 >>
+stream
+200 150 m 600 450 l S 
+endstream
+endobj
+5 0 obj % 文件目录
+<< /Pages 1 0 R
+   /Type /Catalog 
+>>
+endobj xref % 骨架交叉引用表
+0 6
+trailer % 文件尾字典
+<< /Root 5 0 R
+   /Size 6 
+>>
+startxref
+0
+%%EOF % 文件结束标记
