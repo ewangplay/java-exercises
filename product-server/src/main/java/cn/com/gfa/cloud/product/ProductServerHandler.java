@@ -14,7 +14,7 @@ public class ProductServerHandler extends ChannelInboundHandlerAdapter {
         System.out.println(requestData);
         ResponseData responseData = new ResponseData();
         responseData.setResult(requestData.getOperand() * 2);
-        ChannelFuture future = ctx.writeAndFlush(responseData);
-        future.addListener(ChannelFutureListener.CLOSE);
+        System.out.println(responseData);
+        ctx.writeAndFlush(responseData);
     }
 }
