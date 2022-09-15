@@ -8,12 +8,16 @@ import io.netty.handler.codec.ReplayingDecoder;
 
 public class ResponseDataDecoder extends ReplayingDecoder<ResponseData> {
 
-    @Override
-    protected void decode(ChannelHandlerContext ctx, 
+  @Override
+  protected void decode(ChannelHandlerContext ctx,
       ByteBuf in, List<Object> out) throws Exception {
- 
-        ResponseData data = new ResponseData();
-        data.setResult(in.readInt());
-        out.add(data);
-    }
+
+    int len = in.readInt();
+    byte data[] = new byte[len];
+    in.readBytes(data);
+
+    ResponseData resp = ResponseData.getInstance(data);
+
+    out.add(resp);
+  }
 }

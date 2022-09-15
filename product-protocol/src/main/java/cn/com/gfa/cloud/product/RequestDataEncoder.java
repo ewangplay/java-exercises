@@ -9,7 +9,7 @@ public class RequestDataEncoder extends MessageToByteEncoder<RequestData> {
     @Override
     protected void encode(ChannelHandlerContext ctx, 
       RequestData msg, ByteBuf out) throws Exception {
- 
-        out.writeInt(msg.getOperand());
+        out.writeInt(msg.getEncoded().length);
+        out.writeBytes(msg.getEncoded());
     }
 }

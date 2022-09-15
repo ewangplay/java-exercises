@@ -15,106 +15,97 @@
  */
 package cn.com.gfa.cloud.product;
 
+import java.util.Date;
+import java.util.concurrent.ExecutionException;
+
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.DERGeneralizedTime;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.serialization.ClassResolvers;
-import io.netty.handler.codec.serialization.ObjectDecoder;
-import io.netty.handler.codec.serialization.ObjectEncoder;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.concurrent.Promise;
 
 public final class ProductClient {
 
-    static final boolean SSL = System.getProperty("ssl") != null;
-    static final String HOST = System.getProperty("host", "127.0.0.1");
-    static final int PORT = Integer.parseInt(System.getProperty("port", "8007"));
-    static final int SIZE = Integer.parseInt(System.getProperty("size", "256"));
+    private EventLoopGroup group;
+    private Bootstrap b;
+    private String host;
+    private int port;
 
-    public static void main(String[] args) throws Exception {
-        // Configure SSL.
-        final SslContext sslCtx;
-        if (SSL) {
-            sslCtx = SslContextBuilder.forClient()
-                .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        } else {
-            sslCtx = null;
-        }
+    private final AttributeKey<Promise<ResponseData>> result = AttributeKey.valueOf("result");
 
-        EventLoopGroup group = new NioEventLoopGroup();
-        try {
-            Bootstrap b = new Bootstrap();
-            b.group(group)
-             .channel(NioSocketChannel.class)
-             .handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ChannelPipeline p = ch.pipeline();
-                    if (sslCtx != null) {
-                        p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
-                    }
-                    p.addLast(
-                            new RequestDataEncoder(),
-                            new ResponseDataDecoder(),
-                            new ProductClientHandler());
-                }
-             });
-
-            // Start the connection attempt.
-            Channel ch = b.connect(HOST, PORT).sync().channel();
-
-            // Read operand from the stdin.
-            ChannelFuture lastWriteFuture = null;
-            BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-            for (;;) {
-                System.out.println("Please input the operand (input 'bye' to quit):");
-                String line = in.readLine();
-                if (line == null) {
-                    System.out.println("quit...");
-                    ch.close();
-                    break;
-                }
-                // If user typed the 'bye' command, close the connection and quit.
-                if ("bye".equals(line.toLowerCase())) {
-                    // ch.closeFuture().sync();
-                    System.out.println("quit...");
-                    ch.close();
-                    break;
-                }
-
-                int intValue;
-                try{
-                    intValue = Integer.parseInt(line);
-                }
-                catch (NumberFormatException e){
-                    // e.printStackTrace();
-                    System.out.println("invalid operand, retry...");
-                    continue;
-                }
-
-                // Sends the operand to the server.
-                RequestData msg = new RequestData();
-                msg.setOperand(intValue);
-                lastWriteFuture = ch.writeAndFlush(msg);
-            }
-
-            // Wait until all messages are flushed before closing the channel.
-            if (lastWriteFuture != null) {
-                lastWriteFuture.sync();
-            }
-        } finally {
-            // The connection is closed automatically on shutdown.
-            group.shutdownGracefully();
-        }
+    public ProductClient(String host, int port) {
+        this.host = host;
+        this.port = port;
+        init();
     }
+
+    private void init() {
+        group = new NioEventLoopGroup();
+        b = new Bootstrap();
+        b.group(group)
+         .channel(NioSocketChannel.class)
+         .handler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel ch) throws Exception {
+                ChannelPipeline p = ch.pipeline();
+                p.addLast(
+                        new RequestDataEncoder(),
+                        new ResponseDataDecoder(),
+                        new ProductClientHandler());
+            }
+         });
+    }
+
+    public void close() {
+        // The connection is closed automatically on close.
+        group.shutdownGracefully();
+    }
+
+    public int send(int operand) {
+        Channel ch = null;
+        try {
+            Promise<ResponseData> promise = group.next().newPromise();
+
+            // Starts the connection 
+            ch = b.connect(this.host, this.port).sync().channel();
+            Attribute<Promise<ResponseData>> attr = ch.attr(result);
+            attr.set(promise);
+
+            // Sends the operand to the server.
+            RequestData req = new RequestData(new ASN1Integer(0), new ASN1Integer(operand),
+                    new DERGeneralizedTime(new Date()));
+            ch.writeAndFlush(req);
+
+            // Waits to receive the response
+            ResponseData response = promise.get();
+            int result = response.getresult().getValue().intValue();
+            ReferenceCountUtil.release(response);
+
+            return result;
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch(Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (ch != null) {
+                ch.close();
+            }
+        }
+
+        return 0;
+    }
+
 }

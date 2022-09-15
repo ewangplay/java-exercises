@@ -8,13 +8,16 @@ import io.netty.handler.codec.ReplayingDecoder;
 
 public class RequestDataDecoder extends ReplayingDecoder<RequestData> {
 
-    @Override
-    protected void decode(ChannelHandlerContext ctx, 
+  @Override
+  protected void decode(ChannelHandlerContext ctx,
       ByteBuf in, List<Object> out) throws Exception {
- 
-        RequestData data = new RequestData();
-        data.setOperand(in.readInt());
 
-        out.add(data);
-    }
+    int len = in.readInt();
+    byte data[] = new byte[len];
+    in.readBytes(data);
+
+    RequestData req = RequestData.getInstance(data);
+
+    out.add(req);
+  }
 }
